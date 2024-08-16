@@ -64,7 +64,7 @@ namespace ModeRemover
                 var fs = File.OpenRead(file);
                 total += fs.Length;
                 fs.Dispose();
-                //File.Delete(file);
+                File.Delete(file);
                 Debug.WriteLine($"Removed {file}");
                 sw.WriteLine($"Removed {file}");
             }
@@ -74,7 +74,7 @@ namespace ModeRemover
                 var fs = File.OpenRead(file);
                 total += fs.Length;
                 fs.Dispose();
-                //File.Delete(file);
+                File.Delete(file);
                 Debug.WriteLine($"Removed {file}");
                 sw.WriteLine($"Removed {file}");
             }

@@ -1,0 +1,2 @@
+﻿Fix the logging function to work for more games, regardless of structure
+Add support for more games and modes

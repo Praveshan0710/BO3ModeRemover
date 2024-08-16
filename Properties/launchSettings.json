@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "quikLogger": {
+      "commandName": "Project",
+      "workingDirectory": "D:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III"
+    }
+  }
+}

@@ -30,39 +30,15 @@ namespace ModeRemover
                         break;
 
                     case ConsoleKey.M:
-                        DisplayMessage("Are you sure that you want to do this? Cannot be undone(y/n)", ConsoleColor.DarkYellow);
-
-                        if (Console.ReadKey(true).Key == ConsoleKey.Y)
-                            RemoveModeFiles("mp_");
-                        else
-                            DisplayMessage("Aborted", ConsoleColor.Yellow);
-
-                        Console.WriteLine("\nPress any key to continue");
-                        Console.ReadKey(true);
+                        RemoveModeFiles("mp_");
                         break;
 
                     case ConsoleKey.C:
-                        DisplayMessage("Are you sure that you want to do this? Cannot be undone(y/n)", ConsoleColor.DarkYellow);
-
-                        if (Console.ReadKey(true).Key == ConsoleKey.Y)
-                            RemoveModeFiles("cp_");
-                        else
-                            DisplayMessage("Aborted", ConsoleColor.Yellow);
-
-                        Console.WriteLine("\nPress any key to continue");
-                        Console.ReadKey(true);
+                        RemoveModeFiles("cp_");
                         break;
 
                     case ConsoleKey.Z:
-                        DisplayMessage("Are you sure that you want to do this? Cannot be undone(y/n)", ConsoleColor.DarkYellow);
-
-                        if (Console.ReadKey(true).Key == ConsoleKey.Y)
-                            RemoveModeFiles("zm_");
-                        else
-                            DisplayMessage("Aborted", ConsoleColor.Yellow);
-
-                        Console.WriteLine("\nPress any key to continue");
-                        Console.ReadKey(true);
+                        RemoveModeFiles("zm_");
                         break;
                 }
             }while (true);
@@ -70,6 +46,17 @@ namespace ModeRemover
         
         private static void RemoveModeFiles(string modePrefix)
         {
+            DisplayMessage("Are you sure that you want to do this? Cannot be undone(y/n)", ConsoleColor.DarkYellow);
+            if (Console.ReadKey(true).Key != ConsoleKey.Y)
+            {
+                DisplayMessage("Aborted", ConsoleColor.Yellow);
+                Console.WriteLine("\nPress any key to continue");
+                Console.ReadKey(true);
+                return;
+            }
+
+
+
             long total = 0;
             var sw = new StreamWriter(@".\IoModeRemover.log", true);
             foreach (var file in Directory.EnumerateFiles(@"zone", "*", SearchOption.AllDirectories).Where(f => f.Contains(modePrefix)))
@@ -77,7 +64,7 @@ namespace ModeRemover
                 var fs = File.OpenRead(file);
                 total += fs.Length;
                 fs.Dispose();
-                File.Delete(file);
+                //File.Delete(file);
                 Debug.WriteLine($"Removed {file}");
                 sw.WriteLine($"Removed {file}");
             }
@@ -87,7 +74,7 @@ namespace ModeRemover
                 var fs = File.OpenRead(file);
                 total += fs.Length;
                 fs.Dispose();
-                File.Delete(file);
+                //File.Delete(file);
                 Debug.WriteLine($"Removed {file}");
                 sw.WriteLine($"Removed {file}");
             }
@@ -103,6 +90,9 @@ namespace ModeRemover
                 DisplayMessage($"\nRemoved {roundTotal}MB. Logged at IoModeRemover.log", ConsoleColor.Magenta);
             }
             sw.Dispose();
+
+            Console.WriteLine("Press any key to continue");
+            Console.ReadKey(true);
         }
 
         public static void DisplayMessage(string message, ConsoleColor color)
@@ -135,7 +125,7 @@ namespace ModeRemover
 
 
             //Get all the files in zone
-            var zone = new DirectoryInfo(@".\zone");
+            var zone = new DirectoryInfo(@"zone");
             sw.WriteLine("\n ZONE \n");
             foreach (var file in zone.EnumerateFiles())
             {
@@ -157,7 +147,7 @@ namespace ModeRemover
 
             //Get all the files in video
             sw.WriteLine("\n VIDEO \n");
-            var video = new DirectoryInfo(@".\raw\video");
+            var video = new DirectoryInfo(@"video");
             foreach (var file in video.EnumerateFiles())
             {
                 sw.WriteLine($"{file.Name} {ConvertToMegabytes(file.Length)}MB");

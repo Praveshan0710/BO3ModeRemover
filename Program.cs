@@ -4,8 +4,11 @@ namespace ModeRemover
 {
     internal sealed class Program
     {
-        static void Main()
+        private static bool verbose = false;
+        static void Main(string[] args)
         {
+            verbose = args.Contains("-v");
+
             Console.Title = "Io Mode Remove";
             Console.CursorVisible = false;
             if (!File.Exists("BlackOps3.exe"))
@@ -41,6 +44,7 @@ namespace ModeRemover
                         RemoveModeFiles("zm_");
                         break;
                 }
+
             }while (true);
         }
         
@@ -55,40 +59,66 @@ namespace ModeRemover
                 return;
             }
 
+            Console.Clear();
 
+            long removedSize = 0;
+            uint removedFilesCount = 0, failedFilesCount = 0;
 
-            long total = 0;
             var sw = new StreamWriter(@".\IoModeRemover.log", true);
-            foreach (var file in Directory.EnumerateFiles(@"zone", "*", SearchOption.AllDirectories).Where(f => f.Contains(modePrefix)))
+
+            ReadOnlySpan<string> dirs = ["zone", "video"];
+
+            foreach (var dir in dirs)
             {
-                var fs = File.OpenRead(file);
-                total += fs.Length;
-                fs.Dispose();
-                File.Delete(file);
-                Debug.WriteLine($"Removed {file}");
-                sw.WriteLine($"Removed {file}");
+                if (Directory.Exists(dir))
+                {
+                    foreach (var file in new DirectoryInfo(dir).EnumerateFiles($"*{modePrefix}*", SearchOption.AllDirectories))
+                    {
+                        try
+                        {
+                            long fileSize = file.Length;
+                            file.Delete();
+                            removedSize += fileSize;
+                            removedFilesCount++;
+                            sw.WriteLine($"Removed {Path.GetRelativePath(@".\", file.FullName)}");
+                            if (verbose) Console.WriteLine($"Removed {file}");
+                        }
+                        catch (IOException e)
+                        {
+                            failedFilesCount++;
+                            DisplayMessage($"Failed to remove {file}, please close any processes that are using it, like Black Ops III then attempt to remove it again.", ConsoleColor.Red);
+                            sw.WriteLine($"Failed to remove {file}\t {e.Message}");
+                            if (verbose) Console.WriteLine(e.Message);
+                        }
+                        catch (Exception e)
+                        {
+                            failedFilesCount++;
+                            DisplayMessage($"Error {e.Message} when attempting to remove {file}", ConsoleColor.Red);
+                            sw.WriteLine($"Error {e.Message} when attempting to remove {file}");
+                            if (verbose) Console.WriteLine(e.Message);
+                        }
+                    }
+                }
             }
 
-            foreach (var file in Directory.EnumerateFiles(@"video", "*", SearchOption.AllDirectories).Where(f => f.Contains(modePrefix)))
+            if (removedFilesCount + failedFilesCount == 0)
+                Console.WriteLine("No files to remove, the selected mode is not installed");
+            else if (removedSize > 0)
             {
-                var fs = File.OpenRead(file);
-                total += fs.Length;
-                fs.Dispose();
-                File.Delete(file);
-                Debug.WriteLine($"Removed {file}");
-                sw.WriteLine($"Removed {file}");
+                double roundRemovedSize = Double.Round(ConvertToMegabytes(removedSize), 2);
+                sw.WriteLine($"\nRemoved {roundRemovedSize}MB\nRemoved {removedFilesCount} Files");
+                DisplayMessage($"\nRemoved {roundRemovedSize}MB\nRemoved {removedFilesCount} Files", ConsoleColor.Magenta);
             }
 
-            if (total == 0)
+            if (failedFilesCount > 0)
             {
-                DisplayMessage("Nothing to remove", ConsoleColor.Green);
+                sw.WriteLine($"Failed to remove {failedFilesCount} files");
+                DisplayMessage($"Failed to remove {failedFilesCount} files", ConsoleColor.Red);
             }
-            else
-            {
-                double roundTotal = Double.Round(ConvertToMegabytes(total), 2);
-                sw.WriteLine($"\nTotal removed {roundTotal}MB");
-                DisplayMessage($"\nRemoved {roundTotal}MB. Logged at IoModeRemover.log", ConsoleColor.Magenta);
-            }
+
+            if (failedFilesCount != 0 || removedFilesCount != 0)
+                DisplayMessage("Logged at IoModeRemover.log", ConsoleColor.Cyan);
+
             sw.Dispose();
 
             Console.WriteLine("Press any key to continue");
@@ -109,6 +139,7 @@ namespace ModeRemover
 
         public static void WriteLog()
         {
+            Console.Clear();
             string logFile = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + @"\BlackOpsIIIFiles.log";
 
             if (File.Exists(logFile))
@@ -121,40 +152,24 @@ namespace ModeRemover
             }
 
             var sw = new StreamWriter(logFile, true);
-            long totalsize = 0;
+            long gameDirSize = 0;
 
-
-            //Get all the files in zone
-            var zone = new DirectoryInfo(@"zone");
-            sw.WriteLine("\n ZONE \n");
-            foreach (var file in zone.EnumerateFiles())
+            foreach (var dir in new DirectoryInfo(@".\").EnumerateDirectories("*", SearchOption.AllDirectories))
             {
-                sw.WriteLine($"{file.Name} {ConvertToMegabytes(file.Length)}MB"); // Get name and size in Megabytes
-                totalsize += file.Length;
-            }
+                long dirSize = 0;
+                string dirPath = Path.GetRelativePath(@".\", dir.FullName);
 
-            //Get sub dirs of zone
-            foreach (var dir in zone.EnumerateDirectories("*", SearchOption.AllDirectories))
-            {
-                sw.WriteLine($"\n{dir.Name:X}\n");
+                sw.WriteLine($"\n{dirPath}\n");
 
                 foreach (var file in dir.EnumerateFiles("*", SearchOption.AllDirectories))
                 {
-                    sw.WriteLine($"{file.Name} {ConvertToMegabytes(file.Length)}MB");
-                    totalsize += file.Length;
+                    sw.WriteLine($"{Path.GetRelativePath(@".\", file.FullName)} file size {ConvertToMegabytes(file.Length)}MB");
+                    dirSize += file.Length;
+                    gameDirSize += file.Length;
                 }
+                sw.WriteLine($"\n{dirPath} Directory size {ConvertToMegabytes(dirSize)}MB");
             }
-
-            //Get all the files in video
-            sw.WriteLine("\n VIDEO \n");
-            var video = new DirectoryInfo(@"video");
-            foreach (var file in video.EnumerateFiles())
-            {
-                sw.WriteLine($"{file.Name} {ConvertToMegabytes(file.Length)}MB");
-                totalsize += file.Length;
-            }
-
-            sw.WriteLine($"\nTotal size {ConvertToMegabytes(totalsize)}MB");
+            sw.WriteLine($"\nTotal Game Directory Size {ConvertToMegabytes(gameDirSize)}MB");
 
             sw.Dispose();
             DisplayMessage($"Logged at {logFile}", ConsoleColor.Cyan);
